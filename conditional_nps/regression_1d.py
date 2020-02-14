@@ -19,11 +19,11 @@ import matplotlib.pyplot as plt
 sys.path.append('../')
 
 from cnp_model import CNP
-from data_utils import transform_data, x_generator, noisy_function
+from data_utils import transform_data, x_generator, noisy_function, nlpd
 
 #Selecting the range and number of points to train the CNP on, as well as the level of noise in the function.
-min_x = -4.0
-max_x = 4.0
+min_x = -3.5
+max_x = 3.5
 n_points = 20
 std=3.0
 
@@ -66,14 +66,14 @@ def main(context_set_samples, learning_rate, iterations, r_size,
     for i in range(5,6):
         start_time = time.time()
 
-        #Randomly split the data into train and test sets, then standardise to zero mean and unit
-        # variance.
+        #Generate values of x in the range [min_x, max_x], to be used for training
         X_train = x_generator(min_x, max_x, n_points)
         y_train = noisy_function(X_train, std)
         np.save('xtrain_1dreg' + str(i) + '.npy', X_train)
         np.save('ytrain_1dreg' + str(i) + '.npy', y_train)
 
-        X_test = np.expand_dims(np.linspace(min_x - 2, max_x + 2, 100), axis = 1)
+        #Generate target values of x and y for plotting later on
+        X_test = np.expand_dims(np.linspace(min_x - 0.5, max_x + 0.5, 250), axis = 1)
         y_test = noisy_function(X_test, std)
 
         np.save('xtest_1dreg' + str(i) + '.npy', X_test)
@@ -81,7 +81,6 @@ def main(context_set_samples, learning_rate, iterations, r_size,
 
         X_train, y_train, X_test, y_test, x_scaler, y_scaler = transform_data(X_train, y_train, X_test,
                                                                     y_test)
-
         #Convert the data for use in PyTorch.
         X_train = torch.from_numpy(X_train).float()
         y_train = torch.from_numpy(y_train).float()
@@ -130,6 +129,7 @@ def main(context_set_samples, learning_rate, iterations, r_size,
         score = r2_score(y_test, y_mean_pred)
         rmse = np.sqrt(mean_squared_error(y_test, y_mean_pred))
         mae = mean_absolute_error(y_test, y_mean_pred)
+        nlpd_test = nlpd(y_mean_pred, y_var_pred, y_test)
         time_taken = time.time() - start_time
 
         np.save('ytest_mean_pred_1dreg' + str(i) + '.npy', y_mean_pred)
@@ -138,6 +138,7 @@ def main(context_set_samples, learning_rate, iterations, r_size,
         print("\nR^2: {:.3f}".format(score))
         print("RMSE: {:.3f}".format(rmse))
         print("MAE: {:.3f}".format(mae))
+        print("NLPD: {:.4f}".format(nlpd_test))
         print("Execution time: {:.3f}".format(time_taken))
         r2_list.append(score)
         rmse_list.append(rmse)

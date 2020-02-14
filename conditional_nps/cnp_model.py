@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 from encoder import Encoder
 from decoder import Decoder
 
+from data_utils import nlpd
+
 class CNP():
     """
     The Conditional Neural Process model.
@@ -137,8 +139,7 @@ class CNP():
             # guaranteed to decrease monotonically because at each iteration the set of
             # context points changes randomly.
             if iteration % 1000 == 0:
-                print("Iteration " + str(iteration) + ":, Loss = " + str(loss.item()))
-
+                print("Iteration " + str(iteration) + ":, Loss = {:.3f}".format(loss.item()))
                 # We can set testing = True if we want to check that we are not overfitting.
                 if testing:
                     _, predict_train_mean, predict_train_var = self.predict(x_tot_context,
@@ -174,8 +175,8 @@ class CNP():
                             x_t = x_scaler.inverse_transform(np.array(x_test))
                             y_t = y_test_untransformed
 
-                            plt.figure(figsize=(6, 6))
-                            plt.scatter(x_c, y_c, color='black', s=10, marker='+', label="Context points")
+                            plt.figure(figsize=(7, 7))
+                            plt.scatter(x_c, y_c, color='red', s=20, marker='o', label="Context points")
                             plt.plot(x_t, y_t, linewidth=1, color='red', label="Target function")
                             plt.plot(x_t, y_test_mean_pred, color='darkcyan', linewidth=1, label='Predicted mean')
                             plt.fill_between(x_t[:, 0], y_test_mean_pred[:, 0] - 1.96 * np.sqrt(y_test_var_pred[:, 0]),
@@ -192,13 +193,34 @@ class CNP():
                     r2_train = r2_score(y_train_untransformed, y_train_mean_pred)
                     rmse_train = mean_squared_error(y_train_untransformed, y_train_mean_pred)
 
-                    r2_test = r2_score(y_test_untransformed, y_test_mean_pred)
-                    rmse_test = mean_squared_error(y_test_untransformed, y_test_mean_pred)
+                    r2_test_list = []
+                    rmse_test_list = []
+                    nlpd_test_list = []
 
-                    print("R2 score (train) = " + str(r2_train))
-                    print("R2 score (test) = " + str(r2_test))
-                    print("RMSE (train) = " + str(rmse_train))
-                    print("RMSE (test) = " + str(rmse_test))
+                    for j in range(5):
+                        indices = np.random.permutation(y_test_untransformed.shape[0])[0:10]
+                        r2_test = r2_score(y_test_untransformed[indices, 0], y_test_mean_pred[indices, 0])
+                        rmse_test = mean_squared_error(y_test_untransformed[indices, 0],
+                                                       y_test_mean_pred[indices, 0])
+                        nlpd_test = nlpd(y_test_mean_pred[indices, 0], y_test_var_pred[indices, 0],
+                                         y_test_untransformed[indices, 0])
+                        r2_test_list.append(r2_test)
+                        rmse_test_list.append(rmse_test)
+                        nlpd_test_list.append(nlpd_test)
+
+                    r2_test_list = np.array(r2_test_list)
+                    rmse_test_list = np.array(rmse_test_list)
+                    nlpd_test_list = np.array(nlpd_test_list)
+
+                    print("\nmean R^2 (test): {:.3f} +- {:.3f}".format(np.mean(r2_test_list),
+                                                                np.std(r2_test_list) / np.sqrt(len(r2_test_list))))
+                    print("mean RMSE (test): {:.3f} +- {:.3f}".format(np.mean(rmse_test_list),
+                                                               np.std(rmse_test_list) / np.sqrt(len(rmse_test_list))))
+                    print("mean NLPD (test): {:.3f} +- {:.3f}\n".format(np.mean(nlpd_test_list),
+                                                                np.std(nlpd_test_list) / np.sqrt(len(nlpd_test_list))))
+
+                    print("R2 score (train) = {:.3f}".format(r2_train))
+                    print("RMSE score (train) = {:.3f}".format(rmse_train))
 
             loss.backward()
             self.optimiser.step()
