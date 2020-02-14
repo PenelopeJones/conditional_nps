@@ -1,4 +1,3 @@
-"""
 Implementation of Conditional Neural Processes in PyTorch. 
 
 Investigation into methods for training a CNP on a single dataset (i.e a single instance of a function) 
@@ -12,4 +11,3 @@ Learning 2018.
 
 Requirements: 
 PyTorch, numpy, sklearn
-"""
