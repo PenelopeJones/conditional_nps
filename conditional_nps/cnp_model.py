@@ -136,7 +136,7 @@ class CNP():
             # The loss should generally decrease with number of iterations, though it is not
             # guaranteed to decrease monotonically because at each iteration the set of
             # context points changes randomly.
-            if iteration % 100 == 0:
+            if iteration % 1000 == 0:
                 print("Iteration " + str(iteration) + ":, Loss = " + str(loss.item()))
 
                 # We can set testing = True if we want to check that we are not overfitting.
@@ -167,7 +167,7 @@ class CNP():
                     y_test_var_pred = y_scaler.var_ * predict_test_var
                     y_test_untransformed = y_scaler.inverse_transform(y_test)
 
-                    if iteration % 1000 ==0:
+                    if iteration % 1000==0:
                         if plotting:
                             x_c = x_scaler.inverse_transform(np.array(x_train))
                             y_c = y_train_untransformed
@@ -187,7 +187,7 @@ class CNP():
                                       + ', dnh = ' + str(self.decoder.n_hidden)
                                       + ', css = ' + str(self._context_set_samples))
                             plt.legend()
-                            plt.savefig('cnp_1dreg' + str(iteration) + '.png')
+                            plt.savefig('results/cnp_1d_reg' + str(iteration) + '.png')
 
                     r2_train = r2_score(y_train_untransformed, y_train_mean_pred)
                     rmse_train = mean_squared_error(y_train_untransformed, y_train_mean_pred)

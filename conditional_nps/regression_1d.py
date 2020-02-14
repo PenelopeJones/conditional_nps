@@ -15,57 +15,17 @@ import numpy as np
 import torch
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
 
 sys.path.append('../')
 
 from cnp_model import CNP
+from data_utils import transform_data, x_generator, noisy_function
 
-
-
-def transform_data(X_train, y_train, X_test, y_test):
-    """
-    Apply feature scaling to the data. Return the standardised and low-dimensional train and
-    test sets together with the scaler object for the target values.
-
-    :param X_train: input train data
-    :param y_train: train labels
-    :param X_test: input test data
-    :param y_test: test labels
-    :return: X_train_scaled, y_train_scaled, X_test_scaled, y_test_scaled, y_scaler
-    """
-    x_scaler = StandardScaler()
-    X_train_scaled = x_scaler.fit_transform(X_train)
-    X_test_scaled = x_scaler.transform(X_test)
-    y_scaler = StandardScaler()
-    y_train_scaled = y_scaler.fit_transform(y_train.reshape(-1, 1))
-    y_test_scaled = y_scaler.transform(y_test.reshape(-1, 1))
-    return X_train_scaled, y_train_scaled, X_test_scaled, y_test_scaled, x_scaler, y_scaler
-
-def x_generator(min_x, mid1_x, mid2_x, max_x, n_points):
-    x1 = min_x - 1.5
-    x2 = max_x + 1.5
-    n1 = np.random.randint(n_points)
-    n2 = n_points - n1 - 2
-    x3 = (mid1_x - min_x) * np.random.random(n1) + min_x
-    x4 = (max_x - mid2_x) * np.random.random(n2) + mid2_x
-    x = np.concatenate((x3, x4), axis = 0)
-    x = np.insert(x, 0, values = x1)
-    x = np.append(x, values = x2)
-    x = np.reshape(x, (x.shape[0], 1))
-    return x
-
-def noisy_function(x, std):
-    y = x**3 + np.random.normal(loc=0, scale=std, size=(x.shape[0],1))
-    return y
-
-min_x = -2.5
-mid1_x = 0.8
-mid2_x = 1.0
-max_x = 2.5
+#Selecting the range and number of points to train the CNP on, as well as the level of noise in the function.
+min_x = -4.0
+max_x = 4.0
 n_points = 20
-std=3
-
+std=3.0
 
 def main(context_set_samples, learning_rate, iterations, r_size,
          encoder_hidden_size, encoder_n_hidden, decoder_hidden_size, decoder_n_hidden,
@@ -89,6 +49,10 @@ def main(context_set_samples, learning_rate, iterations, r_size,
                                 decoder neural network
     :param decoder_n_hidden: An integer describing the number of hidden layers in the decoder neural
                              network
+    :param testing: A Boolean variable; if true, during testing the RMSE on test and train data '
+                             'will be printed after a specific number of iterations.
+    :param plotting: A Boolean variable; if true, during testing the context points and predicted mean '
+                             'and variance will be plotted after a specific number of iterations.
     :return:
     """
     warnings.filterwarnings('ignore')
@@ -104,13 +68,12 @@ def main(context_set_samples, learning_rate, iterations, r_size,
 
         #Randomly split the data into train and test sets, then standardise to zero mean and unit
         # variance.
-
-        X_train = x_generator(min_x, mid1_x, mid2_x, max_x, n_points)
+        X_train = x_generator(min_x, max_x, n_points)
         y_train = noisy_function(X_train, std)
         np.save('xtrain_1dreg' + str(i) + '.npy', X_train)
         np.save('ytrain_1dreg' + str(i) + '.npy', y_train)
 
-        X_test = np.expand_dims(np.linspace(min_x - 3, max_x + 3, 200), axis = 1)
+        X_test = np.expand_dims(np.linspace(min_x - 2, max_x + 2, 100), axis = 1)
         y_test = noisy_function(X_test, std)
 
         np.save('xtest_1dreg' + str(i) + '.npy', X_test)
@@ -187,7 +150,7 @@ def main(context_set_samples, learning_rate, iterations, r_size,
             x_test = np.load('xtest_1dreg' + str(i) + '.npy')
             y_test = np.load('ytest_1dreg' + str(i) + '.npy')
 
-            plt.figure(figsize = (6, 6))
+            plt.figure(figsize = (9, 9))
             plt.scatter(x_context, y_context, color = 'black', s = 10, marker = '+', label = "Context points")
             plt.plot(x_test, y_test, linewidth = 1, color = 'red', label = "Target function")
             plt.plot(x_test, y_mean_pred, color='darkcyan', linewidth=1, label='Predicted mean')
@@ -195,7 +158,7 @@ def main(context_set_samples, learning_rate, iterations, r_size,
                              y_mean_pred[:, 0] + 1.96 * np.sqrt(y_var_pred[:, 0]),
                              color='cyan', alpha=0.2)
             plt.legend()
-            plt.savefig('cnp_1dreg' + str(i) + '.png')
+            plt.savefig('results/cnp_1d_reg' + str(i) + '.png')
 
         j += 1
 
@@ -216,26 +179,26 @@ def main(context_set_samples, learning_rate, iterations, r_size,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--context_set_samples', type=int, default=64,
+    parser.add_argument('--context_set_samples', type=int, default=1,
                         help='The number of samples to take of the context set, given the number of'
                              ' context points that should be selected.')
     parser.add_argument('--learning_rate', type=float, default=0.01,
                         help='The training learning rate.')
-    parser.add_argument('--iterations', type=int, default=500,
+    parser.add_argument('--iterations', type=int, default=5000,
                         help='Number of training iterations.')
-    parser.add_argument('--r_size', type=int, default=128,
+    parser.add_argument('--r_size', type=int, default=2,
                         help='Dimensionality of context encoding, r.')
-    parser.add_argument('--encoder_hidden_size', type=int, default=8,
+    parser.add_argument('--encoder_hidden_size', type=int, default=4,
                         help='Dimensionality of encoder hidden layers.')
-    parser.add_argument('--encoder_n_hidden', type=int, default=4,
+    parser.add_argument('--encoder_n_hidden', type=int, default=2,
                         help='Number of encoder hidden layers.')
-    parser.add_argument('--decoder_hidden_size', type=int, default=8,
+    parser.add_argument('--decoder_hidden_size', type=int, default=4,
                         help='Dimensionality of decoder hidden layers.')
     parser.add_argument('--decoder_n_hidden', type=int, default=2,
                         help='Number of decoder hidden layers.')
     parser.add_argument('--testing', default=False,
                         help='If true, during testing the RMSE on test and train data '
-                             'will be printed every 30 iterations.')
+                             'will be printed after specific numbers of iterations.')
     parser.add_argument('--plotting', default=False,
                         help='If true, at the end of training a plot will be produced.')
     args = parser.parse_args()
