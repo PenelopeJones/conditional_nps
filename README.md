@@ -1,6 +1,6 @@
 # PyTorch Implementation of Conditional Neural Processes
 
-This repository contains code to train a conditional neural process. 
+This repository contains code to train a conditional neural process. \
 Based on [this paper](https://arxiv.org/abs/1807.01613):
 Conditional Neural Processes: Marta Garnelo, Dan Rosenbaum, Chris J. Maddison, Tiago Ramalho, David Saxton, Murray Shanahan, Yee Whye Teh, Danilo J. Rezende, S. M. Ali Eslami. ICML 2018.
 
